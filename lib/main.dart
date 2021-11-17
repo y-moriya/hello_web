@@ -1,7 +1,101 @@
+import 'package:firebase_auth_platform_interface/firebase_auth_platform_interface.dart';
+import 'package:firebase_auth_web/firebase_auth_web.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_signin_button/flutter_signin_button.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
-void main() {
+Future<void> main() async {
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
+    await Firebase.initializeApp();
+  } catch (e) {
+    print(e);
+  }
+
   runApp(const MyApp());
+}
+
+class SignInWidget extends StatefulWidget {
+  const SignInWidget({Key? key}) : super(key: key);
+
+  @override
+  State createState() => SignInWidgetState();
+}
+
+class SignInWidgetState extends State<SignInWidget> {
+  final _auth = FirebaseAuthWeb.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _auth.authStateChanges().listen((UserPlatform? user) {
+      if (user == null) {
+        print('User is currently signed out!');
+      } else {
+        print('User is signed in!');
+      }
+    });
+  }
+
+  // Googleを使ってサインイン
+  Future<UserCredentialPlatform> signInWithGoogle() async {
+    // 認証フローのトリガー
+    final googleUser = await GoogleSignIn(scopes: [
+      'email',
+    ]).signIn();
+    // リクエストから、認証情報を取得
+    final googleAuth = await googleUser!.authentication;
+    // クレデンシャルを新しく作成
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+    // サインインしたら、UserCredentialを返す
+    return FirebaseAuthWeb.instance.signInWithCredential(credential);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    FirebaseAuthWeb.instance.authStateChanges().listen((UserPlatform? user) {
+      if (user == null) {
+        print('User is currently signed out!');
+      } else {
+        print('User is signed in!');
+      }
+    });
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Google Sign-In Demo',
+        ),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SignInButton(
+              Buttons.Google,
+              onPressed: () async {
+                try {
+                  final userCredential = await signInWithGoogle();
+                  print(
+                      'login succeeded. email: ${userCredential.user?.email}, name: ${userCredential.user?.displayName}');
+                } on FirebaseAuthException catch (e) {
+                  print('FirebaseAuthException');
+                  print(e.toString());
+                  print('${e.code}');
+                } on Exception catch (e) {
+                  print('Exception');
+                  print('${e.toString()}');
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -24,7 +118,7 @@ class MyApp extends StatelessWidget {
         // is not restarted.
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const SignInWidget(),
     );
   }
 }
