@@ -40,6 +40,7 @@ dependencies:
   flutter_signin_button: ^2.0.0
   firebase_auth_web: ^3.2.0
   firebase_auth_platform_interface: ^6.1.4
+  http: ^0.13.4
 
 dev_dependencies:
   flutter_test:
